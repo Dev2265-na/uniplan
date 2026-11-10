@@ -1,0 +1,188 @@
+<!-- _TaskModule.html — Module 1: Tasks (Google Calendar) -->
+
+<!-- ── WEEKLY STATS ─────────────────────────────────── -->
+<div class="card section-gap">
+  <div class="card-header">
+    <div class="card-title"><i class="fi fi-rr-chart-pie"></i> This week</div>
+  </div>
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card accent">
+      <div class="stat-icon-wrap"><i class="fi fi-rr-hourglass-end"></i></div>
+      <div class="stat-value" id="statRemaining">—</div>
+      <div class="stat-label">Remaining</div>
+      <div class="progress-section">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+        </div>
+        <div class="progress-label" id="progressLabel">0% done</div>
+      </div>
+    </div>
+    <div class="stat-card primary">
+      <div class="stat-icon-wrap"><i class="fi fi-rr-clipboard-list"></i></div>
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-label">Total this week</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-icon-wrap"><i class="fi fi-rr-flame"></i></div>
+      <div class="stat-value" id="statUrgent">—</div>
+      <div class="stat-label">Urgent</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-icon-wrap"><i class="fi fi-rr-exclamation"></i></div>
+      <div class="stat-value" id="statHigh">—</div>
+      <div class="stat-label">High</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-icon-wrap"><i class="fi fi-rr-checkbox"></i></div>
+      <div class="stat-value" id="statDone">—</div>
+      <div class="stat-label">Done</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONTROLS ─────────────────────────────────────── -->
+<div class="card section-gap toolbar-card">
+  <div class="toolbar-row">
+    <div class="view-toggle" id="taskViewToggle">
+      <button class="active" onclick="setView('list')" id="viewList">List</button>
+      <button onclick="setView('day')" id="viewDay">Day</button>
+      <button onclick="setView('week')" id="viewWeek">Week</button>
+      <button onclick="setView('month')" id="viewMonth">Month</button>
+    </div>
+
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" onclick="sortByPriority()" id="sortBtn">
+        <i class="fi fi-rr-sort-amount-up"></i> Sort by priority
+      </button>
+      <button class="btn btn-primary" onclick="openAddTaskModal()" id="addTaskBtn">
+        <i class="fi fi-rr-plus"></i> New task
+      </button>
+    </div>
+  </div>
+
+  <div class="toolbar-row filter-row">
+    <div class="search-box">
+      <i class="fi fi-rr-search"></i>
+      <input type="search" class="form-input" id="taskSearch" placeholder="Search tasks..." oninput="onTaskFilterChange()" autocomplete="off" />
+    </div>
+    <select class="form-select filter-select" id="filterPriority" onchange="onTaskFilterChange()" aria-label="Filter by priority">
+      <option value="all">All priorities</option>
+      <option value="urgent">Urgent</option>
+      <option value="high">High</option>
+      <option value="normal">Normal</option>
+      <option value="low">Low</option>
+    </select>
+    <select class="form-select filter-select" id="filterStatus" onchange="onTaskFilterChange()" aria-label="Filter by status">
+      <option value="all">All statuses</option>
+      <option value="active">Active</option>
+      <option value="done">Done</option>
+      <option value="holiday">Holidays</option>
+    </select>
+  </div>
+</div>
+
+<!-- ── DATE RANGE LABEL & NAVIGATION ────────────────── -->
+<div class="date-nav-row">
+  <div class="date-range-label" id="dateRangeLabel"></div>
+  <div class="week-nav" id="dateNav">
+    <button class="btn btn-secondary btn-icon" onclick="navigateDate(-1)" title="Previous"><i class="fi fi-rr-angle-small-left"></i></button>
+    <button class="btn btn-secondary" onclick="goToday()">Today</button>
+    <button class="btn btn-secondary btn-icon" onclick="navigateDate(1)" title="Next"><i class="fi fi-rr-angle-small-right"></i></button>
+    <input type="date" class="date-input" id="datePicker" onchange="onDateChange()" />
+  </div>
+</div>
+
+<!-- ── TASK LIST ─────────────────────────────────────── -->
+<div id="taskListWrap">
+  <div class="task-list" id="taskList"></div>
+</div>
+
+<!-- ── TASK MODAL ─────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="taskModal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h2 class="card-title" id="taskModalTitle">New task</h2>
+      <button class="btn btn-secondary btn-icon" onclick="closeTaskModal()" aria-label="Close"><i class="fi fi-rr-cross-small"></i></button>
+    </div>
+
+    <form id="taskForm" onsubmit="event.preventDefault(); submitTask();">
+      <input type="hidden" id="editEventId" />
+      <input type="hidden" id="editEventDone" value="" />
+
+      <div class="form-group">
+        <label class="form-label" for="taskTitle">Title *</label>
+        <input type="text" class="form-input" id="taskTitle" placeholder="What needs to be done?" maxlength="200" required />
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="taskStartDate">Start date *</label>
+          <input type="date" class="form-input" id="taskStartDate" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="taskEndDate">Due date *</label>
+          <input type="date" class="form-input" id="taskEndDate" required />
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="taskStartTime">Start time</label>
+          <input type="time" class="form-input" id="taskStartTime" value="09:00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="taskEndTime">End time</label>
+          <input type="time" class="form-input" id="taskEndTime" value="10:00" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <div class="priority-picker">
+          <label class="priority-option p-urgent">
+            <input type="radio" name="taskPriority" id="pUrgent" value="urgent" />
+            <span><i class="fi fi-rr-flame"></i> Urgent</span>
+          </label>
+          <label class="priority-option p-high">
+            <input type="radio" name="taskPriority" id="pHigh" value="high" />
+            <span><i class="fi fi-rr-exclamation"></i> High</span>
+          </label>
+          <label class="priority-option p-normal">
+            <input type="radio" name="taskPriority" id="pNormal" value="normal" checked />
+            <span><i class="fi fi-rr-circle"></i> Normal</span>
+          </label>
+          <label class="priority-option p-low">
+            <input type="radio" name="taskPriority" id="pLow" value="low" />
+            <span><i class="fi fi-rr-circle"></i> Low</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="taskDesc">Description</label>
+        <textarea class="form-textarea" id="taskDesc" rows="3" placeholder="Additional details..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="taskSubmitBtn"><i class="fi fi-rr-disk"></i> Save task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── DAY TASKS MODAL ──────────────────────────────── -->
+<div class="modal-overlay hidden" id="dayTasksModal" onclick="if(event.target===this) closeDayTasksModal()">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h2 class="card-title" id="dayTasksModalTitle">Tasks of the day</h2>
+      <div class="modal-head-actions">
+        <button class="btn btn-primary btn-icon" title="New task" onclick="openAddTaskModalFromDay()">
+          <i class="fi fi-rr-plus"></i>
+        </button>
+        <button class="btn btn-secondary btn-icon" onclick="closeDayTasksModal()" aria-label="Close"><i class="fi fi-rr-cross-small"></i></button>
+      </div>
+    </div>
+    <div id="dayTasksModalContent" class="task-list modal-scroll"></div>
+  </div>
+</div>

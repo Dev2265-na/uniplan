@@ -1,0 +1,9 @@
+{
+  "name": "uniplan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UniPlan — Tasks, Duty Rota & Class Schedule Web App",
+  "scripts": {
+    "build": "node build.js"
+  }
+}

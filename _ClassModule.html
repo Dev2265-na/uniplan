@@ -1,0 +1,188 @@
+<!-- _ClassModule.html — Module 3: Class Schedule -->
+
+<!-- ── CONTROLS ──────────────────────────────────────── -->
+<div class="card section-gap toolbar-card" id="classControls">
+  <div class="toolbar-row">
+    <div class="toolbar-title">
+      <h2><i class="fi fi-rr-calendar-lines"></i> Class schedule</h2>
+      <button class="btn btn-sm btn-secondary" onclick="toggleTimetableEditMode()" id="editTimetableToggleBtn">
+        <i class="fi fi-rr-pencil"></i> Edit timetable
+      </button>
+      <a class="btn btn-sm btn-secondary" id="classOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="Open Google Sheet in new tab">
+        <i class="fi fi-rr-file-spreadsheet"></i> Google Sheet
+      </a>
+      <button class="btn btn-sm btn-secondary" onclick="seedSampleDataPrompt()" title="Load Sample Template">
+        <i class="fi fi-rr-sparkles"></i> Load Template
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick="exportClassImage()" id="classExportBtn" title="Export timetable as PNG image">
+        <i class="fi fi-rr-download"></i> Export as Image
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick="copyClassToClipboard()" id="classCopyBtn" title="Copy timetable image to clipboard">
+        <i class="fi fi-rr-copy"></i> Copy to Clipboard
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick="syncClassesToCalendarPrompt()" id="classSyncCalBtn" title="Sync classes to Google Calendar">
+        <i class="fi fi-rr-calendar-plus"></i> Sync Calendar
+      </button>
+      <button class="btn btn-sm btn-secondary" onclick="sendClassesToDiscordPrompt()" id="classDiscordBtn" title="Send weekly class timetable to Discord">
+        <i class="fi fi-rr-paper-plane"></i> Send to Discord
+      </button>
+    </div>
+    <div class="toolbar-actions edit-only" id="classEditActionButtons">
+      <span class="dirty-note hidden" id="classDirtyNote"><i class="fi fi-rr-exclamation"></i> Unsaved changes</span>
+      <button class="btn btn-secondary" onclick="openAddSubjectModal()" id="addSubjectBtn">
+        <i class="fi fi-rr-plus"></i> Add subject
+      </button>
+      <button class="btn btn-primary" onclick="saveTimetable()" id="saveNowBtn">
+        <i class="fi fi-rr-disk"></i> Save Timetable
+      </button>
+    </div>
+  </div>
+  <div class="toolbar-row week-nav-row" id="classWeekNav">
+    <div class="toolbar-actions" style="align-items: center;">
+      <button class="btn btn-secondary btn-icon" onclick="prevClassWeek()" title="Previous week" aria-label="Previous week">
+        <i class="fi fi-rr-angle-small-left"></i>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="todayClassWeek()" id="classTodayBtn">
+        Today
+      </button>
+      <button class="btn btn-secondary btn-icon" onclick="nextClassWeek()" title="Next week" aria-label="Next week">
+        <i class="fi fi-rr-angle-small-right"></i>
+      </button>
+      <span class="week-label" id="classWeekRangeLabel">Loading week...</span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="copyFromPrevClassWeek()" id="classCopyPrevBtn" title="Copy schedule from previous week">
+        <i class="fi fi-rr-copy-alt"></i> Copy from last week
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LAYOUT: POOL + TIMETABLE ─────────────────────── -->
+<div class="pool-layout" id="classLayout">
+
+  <!-- Subject Pool -->
+  <aside class="card pool-card" id="subjectPool">
+    <div class="pool-head">
+      <div class="card-title"><i class="fi fi-rr-box-open"></i> Subject pool</div>
+      <span class="count-pill" id="poolCount">0 subjects</span>
+    </div>
+    <div class="pool-body" id="poolBody"></div>
+  </aside>
+
+  <!-- Timetable -->
+  <div class="grid-scroll timetable-wrap" id="timetableWrap">
+    <div class="timetable-grid" id="timetable"></div>
+  </div>
+</div>
+
+<!-- ── ADD/EDIT SUBJECT MODAL ────────────────────────── -->
+<div class="modal-overlay hidden" id="subjectModal" role="dialog" aria-modal="true" aria-labelledby="subjectModalTitle">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h2 class="card-title" id="subjectModalTitle">New subject</h2>
+      <button class="btn btn-secondary btn-icon" onclick="closeSubjectModal()" aria-label="Close"><i class="fi fi-rr-cross-small"></i></button>
+    </div>
+
+    <form id="subjectForm" onsubmit="event.preventDefault(); submitSubject();">
+      <input type="hidden" id="editSubjectId" />
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="subjectCode">Subject code *</label>
+          <input type="text" class="form-input" id="subjectCode" placeholder="e.g. RAPM102" maxlength="20" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="subjectRoom">Room</label>
+          <input type="text" class="form-input" id="subjectRoom" placeholder="e.g. A301" maxlength="30" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="subjectName">Subject name *</label>
+        <input type="text" class="form-input" id="subjectName" placeholder="Subject name..." maxlength="100" required />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Block color</label>
+        <div class="color-swatches" id="subjectColorSwatches"></div>
+        <input type="hidden" id="subjectColor" value="#6366f1" />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeSubjectModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="subjectSubmitBtn"><i class="fi fi-rr-disk"></i> Save subject</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── CLASS SESSION & MATERIALS MODAL ───────────────── -->
+<div class="modal-overlay hidden" id="classBlockModal" role="dialog" aria-modal="true" aria-labelledby="classBlockModalTitle">
+  <div class="modal-content">
+    <div class="modal-head">
+      <h2 class="card-title" id="classBlockModalTitle"><i class="fi fi-rr-book-open-cover"></i> Class Session &amp; Materials</h2>
+      <button class="btn btn-secondary btn-icon" onclick="closeClassBlockModal()" aria-label="Close"><i class="fi fi-rr-cross-small"></i></button>
+    </div>
+
+    <div class="session-quick-links hidden" id="blockQuickLinks">
+      <a class="btn btn-sm btn-primary hidden" id="blockOpenSlideBtn" href="#" target="_blank" rel="noopener noreferrer">
+        <i class="fi fi-rr-file-pdf"></i> Open Slides / Handout
+      </a>
+      <a class="btn btn-sm btn-secondary hidden" id="blockOpenMeetBtn" href="#" target="_blank" rel="noopener noreferrer">
+        <i class="fi fi-rr-video-camera-alt"></i> Join Online Class
+      </a>
+    </div>
+
+    <form id="classBlockForm" onsubmit="event.preventDefault(); submitClassBlockEdit();">
+      <input type="hidden" id="editClassBlockId" />
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="blockSubjectCode">Subject code</label>
+          <input type="text" class="form-input" id="blockSubjectCode" disabled />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="blockRoom">Room / Location</label>
+          <input type="text" class="form-input" id="blockRoom" placeholder="e.g. ห้องบรรยาย 1 / Lab" maxlength="40" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="blockSubjectName">Topic / Session name *</label>
+        <input type="text" class="form-input" id="blockSubjectName" placeholder="Session topic or subject name..." required />
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="blockStartTime">Start time *</label>
+          <input type="time" class="form-input" id="blockStartTime" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="blockEndTime">End time *</label>
+          <input type="time" class="form-input" id="blockEndTime" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="blockSlideUrl"><i class="fi fi-rr-document"></i> Slides / Handout URL (Google Drive, PDF, GoodNotes, Notion)</label>
+        <input type="url" class="form-input" id="blockSlideUrl" placeholder="https://drive.google.com/..." />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="blockMeetingUrl"><i class="fi fi-rr-video-camera-alt"></i> Online Meeting URL (Zoom, Meet, Webex)</label>
+        <input type="url" class="form-input" id="blockMeetingUrl" placeholder="https://zoom.us/j/..." />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="blockSessionNotes"><i class="fi fi-rr-notebook"></i> Session Notes / Instructor / Exam Scope</label>
+        <textarea class="form-textarea" id="blockSessionNotes" rows="2" placeholder="e.g. อ.สมชาย, ออกสอบ Quiz 10 ข้อ, อ่านสไลด์หน้า 15-40..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeClassBlockModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="blockSaveBtn"><i class="fi fi-rr-disk"></i> Save session</button>
+      </div>
+    </form>
+  </div>
+</div>

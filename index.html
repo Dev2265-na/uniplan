@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="description" content="UniPlan - tasks, duty rota and class schedule in one place, powered by Google Calendar and Google Sheets" />
+  <title>UniPlan</title>
+  <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#e8eaf6" media="(prefers-color-scheme: light)" />
+
+  <!-- Pseudo-PWA Manifest via Data URI -->
+  <link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjoiVW5pUGxhbiIsInNob3J0X25hbWUiOiJVbmlQbGFuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJzdGFydF91cmwiOiIuIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwZjE3MmEiLCJ0aGVtZV9jb2xvciI6IiM2MzY2ZjEifQ==" />
+
+  <?!= include('_Stylesheet'); ?>
+</head>
+<body>
+
+<!-- Decorative glass background -->
+<div class="bg-orbs" aria-hidden="true">
+  <span class="orb orb-1"></span>
+  <span class="orb orb-2"></span>
+  <span class="orb orb-3"></span>
+</div>
+
+<!-- ── SIDEBAR NAV ─────────────────────────────────────── -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon"><i class="fi fi-rr-calendar"></i></span>
+    <span class="logo-text">UniPlan</span>
+  </div>
+  <ul class="sidebar-nav">
+    <li>
+      <button class="nav-btn active" id="navTask" onclick="switchModule('task')">
+        <span class="nav-icon"><i class="fi fi-rr-list-check"></i></span>
+        <span class="nav-label">Tasks</span>
+      </button>
+    </li>
+    <li>
+      <button class="nav-btn" id="navDuty" onclick="switchModule('duty')">
+        <span class="nav-icon"><i class="fi fi-rr-shield-check"></i></span>
+        <span class="nav-label">Duty</span>
+      </button>
+    </li>
+    <li>
+      <button class="nav-btn" id="navClass" onclick="switchModule('class')">
+        <span class="nav-icon"><i class="fi fi-rr-calendar-lines"></i></span>
+        <span class="nav-label">Classes</span>
+      </button>
+    </li>
+    <li>
+      <button class="nav-btn" id="navStudy" onclick="switchModule('study')">
+        <span class="nav-icon"><i class="fi fi-rr-graduation-cap"></i></span>
+        <span class="nav-label">Study</span>
+      </button>
+    </li>
+  </ul>
+  <div class="sidebar-user" id="sidebarUser">
+    <span class="user-avatar" id="userAvatar"><i class="fi fi-rr-user"></i></span>
+    <span class="user-email" id="userEmail"></span>
+  </div>
+</nav>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────── -->
+<main class="main-content" id="mainContent">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu"><i class="fi fi-rr-menu-burger"></i></button>
+    <div class="topbar-title" id="topbarTitle">Tasks</div>
+    <div class="topbar-actions">
+      <button class="topbar-timer-pill hidden" id="topbarTimerPill" onclick="switchModule('study')" title="Open Study & OSCE Timer">
+        <i class="fi fi-rr-stopwatch"></i>
+        <span id="topbarTimerMode">Pomodoro</span>
+        <strong id="topbarTimerClock">25:00</strong>
+      </button>
+      <div class="sync-indicator" id="syncIndicator" style="display:none">
+        <span class="sync-dot saved" id="syncDot"></span>
+        <span class="syncText" id="syncText">All changes saved</span>
+      </div>
+      <button id="topbarRefreshBtn" onclick="refreshAppOnDevice()" title="รีเฟรชข้อมูลและอัปเดตหน้าเว็บ (สำหรับ iPad / Home Screen)" class="btn-icon theme-btn">
+        <i class="fi fi-rr-refresh"></i>
+      </button>
+      <button id="themeToggleBtn" onclick="toggleTheme()" title="Toggle theme" class="btn-icon theme-btn">
+        <i class="fi fi-rr-sun"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Pull-to-refresh indicator for iPad / iOS touch -->
+  <div class="ptr-indicator hidden" id="pullRefreshIndicator">
+    <i class="fi fi-rr-refresh ptr-icon"></i>
+    <span id="pullRefreshText">ดึงลงเพื่อรีเฟรชข้อมูล (Pull down to refresh)...</span>
+  </div>
+
+  <!-- ── OVERVIEW HUB: TODAY AT A GLANCE & EXAM COUNTDOWN ── -->
+  <section class="overview-hub card section-gap" id="overviewHub">
+    <div class="overview-header">
+      <div class="overview-title-group">
+        <span class="overview-badge"><i class="fi fi-rr-sparkles"></i> Today at a glance</span>
+        <span class="overview-date" id="overviewTodayDate"></span>
+      </div>
+      <div class="overview-header-right">
+        <div class="exam-countdown-strip" id="examCountdownStrip"></div>
+        <button class="btn btn-secondary btn-icon btn-sm" id="overviewToggleBtn" onclick="toggleOverviewHub()" title="Collapse / Expand overview" aria-label="Toggle overview">
+          <i class="fi fi-rr-angle-small-up"></i>
+        </button>
+      </div>
+    </div>
+    <div class="overview-body" id="overviewBody">
+      <div class="glance-card" onclick="switchModule('class')" title="Go to Class schedule">
+        <div class="glance-card-head">
+          <span class="glance-icon glance-icon-class"><i class="fi fi-rr-graduation-cap"></i></span>
+          <span class="glance-label">Today's Classes</span>
+          <span class="glance-count" id="glanceClassCount">0</span>
+        </div>
+        <div class="glance-list" id="glanceClassList">
+          <div class="glance-empty">Loading classes...</div>
+        </div>
+      </div>
+      <div class="glance-card" onclick="switchModule('duty')" title="Go to Duty rota">
+        <div class="glance-card-head">
+          <span class="glance-icon glance-icon-duty"><i class="fi fi-rr-shield-check"></i></span>
+          <span class="glance-label">Today's Duty</span>
+          <span class="glance-count" id="glanceDutyCount">0</span>
+        </div>
+        <div class="glance-list" id="glanceDutyList">
+          <div class="glance-empty">Loading duty rota...</div>
+        </div>
+      </div>
+      <div class="glance-card" onclick="switchModule('task')" title="Go to Tasks">
+        <div class="glance-card-head">
+          <span class="glance-icon glance-icon-task"><i class="fi fi-rr-list-check"></i></span>
+          <span class="glance-label">Today's Tasks</span>
+          <span class="glance-count" id="glanceTaskCount">0</span>
+        </div>
+        <div class="glance-list" id="glanceTaskList">
+          <div class="glance-empty">Loading tasks...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MODULE 1: TASKS ────────────────────────────── -->
+  <div class="module-view" id="moduleTask">
+    <?!= include('_TaskModule'); ?>
+  </div>
+
+  <!-- ── MODULE 2: DUTY / ROTA ──────────────────────── -->
+  <div class="module-view hidden" id="moduleDuty">
+    <?!= include('_DutyModule'); ?>
+  </div>
+
+  <!-- ── MODULE 3: CLASS SCHEDULE ───────────────────── -->
+  <div class="module-view hidden" id="moduleClass">
+    <?!= include('_ClassModule'); ?>
+  </div>
+
+  <!-- ── MODULE 4: STUDY HUB (TIMER & GRADE TRACKER) ── -->
+  <div class="module-view hidden" id="moduleStudy">
+
+    <!-- Unified Study Subject Bar (เลือกวิชาเดียว มีผลทั้งหน้า ไม่สับสน) -->
+    <div class="card study-global-bar" id="studyGlobalBar">
+      <div class="study-global-left">
+        <label class="study-global-label" for="studyGlobalSubjectSelect">
+          <i class="fi fi-rr-graduation-cap"></i> กำลังเลือกดูวิชา (Active Subject):
+        </label>
+        <select class="form-input study-global-select" id="studyGlobalSubjectSelect" onchange="selectStudySubject(this.value)"></select>
+      </div>
+      <div class="study-subject-pills" id="studySubjectPills"></div>
+    </div>
+
+    <div class="study-grid">
+
+      <!-- Card 1: Pomodoro & OSCE Station Timer -->
+      <div class="card study-card" id="studyTimerCard">
+        <div class="study-card-head">
+          <div>
+            <h2 class="card-title"><i class="fi fi-rr-stopwatch"></i> Focus &amp; OSCE Station Timer</h2>
+            <p class="study-sub">Pomodoro study sessions &amp; OSCE station simulation with 1-minute warning chime</p>
+          </div>
+          <span class="timer-status-badge" id="timerStatusBadge">Ready</span>
+        </div>
+
+        <div class="timer-preset-group">
+          <div class="timer-preset-label"><i class="fi fi-rr-book-alt"></i> Study / Pomodoro</div>
+          <div class="timer-preset-row">
+            <button type="button" class="btn btn-sm timer-preset-btn active" id="preset_pomo25" onclick="selectTimerPreset('pomo25', 25, 'study', 'Pomodoro 25m')">25m Focus</button>
+            <button type="button" class="btn btn-sm timer-preset-btn" id="preset_pomo50" onclick="selectTimerPreset('pomo50', 50, 'study', 'Deep Focus 50m')">50m Deep</button>
+            <button type="button" class="btn btn-sm timer-preset-btn" id="preset_break5" onclick="selectTimerPreset('break5', 5, 'break', 'Short Break 5m')">5m Break</button>
+            <button type="button" class="btn btn-sm timer-preset-btn" id="preset_break10" onclick="selectTimerPreset('break10', 10, 'break', 'Long Break 10m')">10m Break</button>
+          </div>
+        </div>
+
+        <div class="timer-preset-group">
+          <div class="timer-preset-label"><i class="fi fi-rr-stethoscope"></i> OSCE Station Simulation (Chimes at 01:00 left &amp; Time Up)</div>
+          <div class="timer-preset-row">
+            <button type="button" class="btn btn-sm timer-preset-btn osce-btn" id="preset_osce5" onclick="selectTimerPreset('osce5', 5, 'osce', 'OSCE Station 5m')">OSCE 5m</button>
+            <button type="button" class="btn btn-sm timer-preset-btn osce-btn" id="preset_osce7" onclick="selectTimerPreset('osce7', 7, 'osce', 'OSCE Station 7m')">OSCE 7m</button>
+            <button type="button" class="btn btn-sm timer-preset-btn osce-btn" id="preset_osce8" onclick="selectTimerPreset('osce8', 8, 'osce', 'OSCE Station 8m')">OSCE 8m</button>
+            <button type="button" class="btn btn-sm timer-preset-btn osce-btn" id="preset_osce10" onclick="selectTimerPreset('osce10', 10, 'osce', 'OSCE Station 10m')">OSCE 10m</button>
+          </div>
+        </div>
+
+        <div class="timer-subject-row">
+          <label class="form-label" for="timerSubjectSelect">Studying Subject / Station</label>
+          <select class="form-input" id="timerSubjectSelect" onchange="onTimerSubjectChange(this.value)"></select>
+        </div>
+
+        <div class="timer-display-box" id="timerDisplayBox">
+          <div class="timer-mode-caption" id="timerModeCaption">Pomodoro 25m</div>
+          <div class="timer-digits" id="studyTimerDisplay">25:00</div>
+          <div class="timer-progress-track">
+            <div class="timer-progress-bar" id="studyTimerBar" style="width: 100%;"></div>
+          </div>
+          <div class="timer-warning-banner hidden" id="osceWarningBanner">
+            <i class="fi fi-rr-bell-ring"></i> 1 MINUTE REMAINING — Wrap up station &amp; summarize!
+          </div>
+        </div>
+
+        <div class="timer-controls-row">
+          <button type="button" class="btn btn-primary" id="timerStartPauseBtn" onclick="toggleStudyTimer()">
+            <i class="fi fi-rr-play"></i> Start
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="resetStudyTimer()">
+            <i class="fi fi-rr-refresh"></i> Reset
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="testTimerChime()" title="Test audio chime">
+            <i class="fi fi-rr-volume"></i> Test Bell
+          </button>
+        </div>
+
+        <div class="study-log-section">
+          <div class="study-log-head">
+            <span><i class="fi fi-rr-chart-histogram"></i> Completed Study &amp; OSCE Sessions</span>
+            <span class="count-pill" id="studyTotalMinsPill">0 mins total</span>
+          </div>
+          <div class="study-log-list" id="studySessionLogList"></div>
+        </div>
+      </div>
+
+      <!-- Card 2: Score, Weight & Grade Target Calculator -->
+      <div class="card study-card" id="studyGradesCard">
+        <div class="study-card-head">
+          <div>
+            <h2 class="card-title"><i class="fi fi-rr-bullseye-arrow"></i> Score &amp; Weight Calculator (เชื่อมกับ Google Sheet)</h2>
+            <p class="study-sub">เพิ่ม/แก้ไขรายชื่อวิชา บันทึกคะแนนเก็บ &amp; น้ำหนัก (%) และซิงค์ข้อมูลลง Google Sheet อัตโนมัติ</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <a class="btn btn-sm btn-secondary" id="studyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="Open Google Sheet (SubjectPool &amp; Grades)">
+              <i class="fi fi-rr-file-spreadsheet"></i> Google Sheet
+            </a>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="syncStudyWithGoogleSheet(true)" title="ดึงรายชื่อวิชาและคะแนนล่าสุดจาก Google Sheet">
+              <i class="fi fi-rr-refresh"></i> Sync Sheet
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="openGradeCutoffsModal()" title="Customize grade cutoffs (A, B+, B...)">
+              <i class="fi fi-rr-settings-sliders"></i> Grade Cutoffs
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveStudyDataToServer(true)">
+              <i class="fi fi-rr-disk"></i> Save to Sheet
+            </button>
+          </div>
+        </div>
+
+        <div class="grade-subject-bar">
+          <div class="form-group" style="flex:1; margin-bottom:0; min-width:180px;">
+            <label class="form-label" for="gradeSubjectSelect">รายวิชา (Select Subject — จาก Google Sheet)</label>
+            <select class="form-input" id="gradeSubjectSelect" onchange="selectStudySubject(this.value)"></select>
+          </div>
+          <div class="form-group" style="width:92px; margin-bottom:0;">
+            <label class="form-label" for="gradeSubjectCredits" title="Course credit weight for GPA">Credits (หน่วยกิต)</label>
+            <input type="number" step="0.5" min="0.5" max="12" class="form-input" id="gradeSubjectCredits" value="3" oninput="onSubjectCreditsChange(this.value)" />
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่ลงในระบบและ Google Sheet">
+            <i class="fi fi-rr-plus"></i> เพิ่มวิชา
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="editStudySubjectPrompt()" title="แก้ไขรหัสวิชา ชื่อวิชา หรือหน่วยกิต">
+            <i class="fi fi-rr-edit"></i> แก้ไขวิชา
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="deleteStudySubjectPrompt()" title="ลบรายวิชานี้ออกจากรายการ">
+            <i class="fi fi-rr-trash"></i> ลบวิชา
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="resetSubjectGradeTemplate()" title="Reset to default assessment components">
+            <i class="fi fi-rr-magic-wand"></i> Reset
+          </button>
+        </div>
+
+        <div class="grade-weight-banner" id="gradeWeightStatusBanner"></div>
+
+        <div class="grade-summary-strip" id="gradeSummaryStrip">
+          <div class="grade-metric">
+            <span class="grade-metric-label">Accumulated Weighted Score</span>
+            <strong class="grade-metric-val" id="gradeAccumVal">0.00%</strong>
+          </div>
+          <div class="grade-metric">
+            <span class="grade-metric-label">Graded / Total Weight</span>
+            <strong class="grade-metric-val" id="gradeGradedWeightVal">0% / 100%</strong>
+          </div>
+          <div class="grade-metric">
+            <span class="grade-metric-label">Remaining Weight</span>
+            <strong class="grade-metric-val" id="gradeRemainingWeightVal">100%</strong>
+          </div>
+        </div>
+
+        <div class="grade-items-head">
+          <span>Assessment Component</span>
+          <span>Weight (%)</span>
+          <span>Earned</span>
+          <span>Max</span>
+          <span>Weighted</span>
+          <span></span>
+        </div>
+        <div class="grade-items-list" id="gradeItemsList"></div>
+
+        <div class="grade-items-actions">
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentRow()">
+            <i class="fi fi-rr-plus"></i> Add Row
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Quiz', 10, 10)">+ Quiz (10%)</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('TBL / JC', 10, 10)">+ TBL/JC (10%)</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('OSCE Exam', 20, 100)">+ OSCE (20%)</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Midterm Exam', 30, 100)">+ Midterm (30%)</button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Final Exam', 30, 100)">+ Final (30%)</button>
+        </div>
+
+        <!-- What-if Remaining Score Simulator -->
+        <div class="whatif-simulator-box" id="whatIfSimulatorBox">
+          <div class="whatif-head">
+            <span><i class="fi fi-rr-sparkles"></i> What-If Simulator (ลองสมมติคะแนนสอบส่วนที่เหลือ)</span>
+            <span class="whatif-result" id="whatIfResultBadge">Projected: —</span>
+          </div>
+          <div class="whatif-controls">
+            <input type="range" min="0" max="100" step="1" value="75" id="whatIfSlider" oninput="onWhatIfChange(this.value)" />
+            <div class="whatif-pct-wrap">
+              <input type="number" min="0" max="100" step="1" value="75" class="form-input grade-input-num" id="whatIfInput" oninput="onWhatIfChange(this.value)" />
+              <span>%</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grade-target-section">
+          <div class="study-log-head">
+            <span><i class="fi fi-rr-graduation-cap"></i> Required Score on Remaining Weight to Reach Grade</span>
+          </div>
+          <div class="grade-target-grid" id="gradeTargetGrid"></div>
+        </div>
+      </div>
+
+      <!-- Card 3: All Subjects Matrix Score Sheet & Credit-Weighted GPA -->
+      <div class="card study-card study-card-wide" id="studyGpaOverviewCard">
+        <div class="study-card-head">
+          <div>
+            <h2 class="card-title"><i class="fi fi-rr-table-list"></i> ตารางสรุปสัดส่วนน้ำหนักคะแนนและคะแนนรวมสุทธิ (Course Score Matrix &amp; GPA)</h2>
+            <p class="study-sub">ตารางคะแนนรายวิชาตามสัดส่วนน้ำหนักจริง (กรอกคะแนนสุทธิลงในช่องได้ทันที หรือคลิกชื่อวิชาเพื่อคำนวณเป้าหมายไฟนอลด้านบน)</p>
+          </div>
+          <div class="gpa-summary-badges">
+            <span class="gpa-badge"><span class="gpa-badge-lbl">Total Credits:</span> <strong id="gpaTotalCreditsVal">0</strong></span>
+            <span class="gpa-badge"><span class="gpa-badge-lbl">Avg Score:</span> <strong id="gpaAvgScoreVal">0.0%</strong></span>
+            <span class="gpa-badge accent"><span class="gpa-badge-lbl">Estimated GPA:</span> <strong id="gpaEstVal">0.00</strong></span>
+            <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่">
+              <i class="fi fi-rr-plus"></i> เพิ่มรายวิชา
+            </button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="loadOfficialParamedicScoreTemplatePrompt()" title="Load official RAPM 201, 202, 203, 208 score structure">
+              <i class="fi fi-rr-refresh"></i> โหลดโครงสร้างคะแนน RAPM
+            </button>
+          </div>
+        </div>
+
+        <!-- Reference Grade Cutoff Table (เกณฑ์การตัดเกรดอ้างอิง) -->
+        <div class="ref-cutoff-box">
+          <div class="ref-cutoff-title"><i class="fi fi-rr-info"></i> เกณฑ์การตัดเกรดอ้างอิง (Reference Grading Scale)</div>
+          <div class="ref-cutoff-grid">
+            <div class="ref-cut-item pass"><span class="rc-g">A</span><span class="rc-p">3.51 – 4.00</span><span class="rc-s">87.75 – 100.00%</span></div>
+            <div class="ref-cut-item pass"><span class="rc-g">B+</span><span class="rc-p">3.25 – 3.50</span><span class="rc-s">81.25 – 87.50%</span></div>
+            <div class="ref-cut-item pass"><span class="rc-g">B</span><span class="rc-p">3.00 – 3.24</span><span class="rc-s">75.00 – 81.00%</span></div>
+            <div class="ref-cut-item pass"><span class="rc-g">C+</span><span class="rc-p">2.50 – 2.99</span><span class="rc-s">62.50 – 74.75%</span></div>
+            <div class="ref-cut-item pass"><span class="rc-g">C</span><span class="rc-p">2.00 – 2.49</span><span class="rc-s">50.00 – 62.25%</span></div>
+            <div class="ref-cut-item fail"><span class="rc-g">D+</span><span class="rc-p">1.50 – 1.99</span><span class="rc-s">37.50 – 49.75%</span></div>
+            <div class="ref-cut-item fail"><span class="rc-g">D</span><span class="rc-p">1.00 – 1.49</span><span class="rc-s">25.00 – 37.25%</span></div>
+            <div class="ref-cut-item fail"><span class="rc-g">F</span><span class="rc-p">&lt; 1.00</span><span class="rc-s">&lt; 25.00%</span></div>
+          </div>
+        </div>
+
+        <!-- Horizontal Matrix View (Matches User's Spreadsheet Layout) -->
+        <div class="matrix-filter-bar">
+          <div class="matrix-filter-label"><i class="fi fi-rr-eye"></i> แสดงผลตารางคะแนน:</div>
+          <div class="matrix-filter-pills" id="matrixFilterPills"></div>
+        </div>
+        <div class="score-matrix-list" id="scoreMatrixContainer"></div>
+
+        <div class="gpa-table-wrap" style="margin-top: 10px;">
+          <table class="gpa-table">
+            <thead>
+              <tr>
+                <th>รายวิชา (Subject)</th>
+                <th>หน่วยกิต (Credits)</th>
+                <th>น้ำหนักที่ประกาศผลแล้ว</th>
+                <th>คะแนนรวมสุทธิ (100%)</th>
+                <th>แต้มประจำ / เกรดปัจจุบัน</th>
+                <th>เกรดแนวโน้ม (Projected)</th>
+                <th>ต้องทำเพิ่มเพื่อผ่าน C (≥50.00%)</th>
+              </tr>
+            </thead>
+            <tbody id="gpaOverviewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- ── GLOBAL LOADING OVERLAY ─────────────────────────── -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <p class="loading-text">Loading...</p>
+</div>
+
+<!-- Libraries: SweetAlert2 (dialogs) + html2canvas (rota export) -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<?!= include('_JavaScript'); ?>
+</body>
+</html>

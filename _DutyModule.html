@@ -1,0 +1,132 @@
+<!-- _DutyModule.html — Module 2: Duty / Rota -->
+
+<!-- ── CONTROLS ──────────────────────────────────────── -->
+<div class="card section-gap toolbar-card" id="dutyControls">
+  <div class="toolbar-row">
+    <div class="toolbar-title">
+      <h2><i class="fi fi-rr-shield-check"></i> Duty rota</h2>
+      <button class="btn btn-sm btn-secondary" onclick="toggleDutyEditMode()" id="dutyEditToggleBtn">
+        <i class="fi fi-rr-pencil"></i> Edit rota
+      </button>
+    </div>
+    <div class="toolbar-actions">
+      <a class="btn btn-secondary" id="dutyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="Open Google Sheet in new tab">
+        <i class="fi fi-rr-file-spreadsheet"></i> Google Sheet
+      </a>
+      <button class="btn btn-secondary" onclick="seedSampleDataPrompt()" title="Load Sample Template">
+        <i class="fi fi-rr-sparkles"></i> Load Template
+      </button>
+      <button class="btn btn-secondary" onclick="syncDutyToCalendarPrompt()" id="dutySyncCalBtn" title="Sync shifts to Google Calendar">
+        <i class="fi fi-rr-calendar-check"></i> Sync Calendar
+      </button>
+      <button class="btn btn-secondary" onclick="sendDutyToDiscordPrompt()" id="dutyDiscordBtn" title="Send weekly rota to Discord">
+        <i class="fi fi-rr-paper-plane"></i> Send to Discord
+      </button>
+      <button class="btn btn-secondary" onclick="exportDutyImage()" id="dutyExportBtn">
+        <i class="fi fi-rr-download"></i> Export as Image
+      </button>
+      <button class="btn btn-secondary" onclick="copyDutyToClipboard()" id="dutyCopyBtn">
+        <i class="fi fi-rr-copy"></i> Copy to Clipboard
+      </button>
+    </div>
+  </div>
+  <div class="toolbar-row edit-only" id="dutyEditActions">
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" onclick="addTimeSlot()" id="dutyAddSlotBtn">
+        <i class="fi fi-rr-plus"></i> Add time slot
+      </button>
+    </div>
+    <div class="toolbar-actions">
+      <span class="dirty-note hidden" id="dutyDirtyNote"><i class="fi fi-rr-exclamation"></i> Unsaved changes</span>
+      <button class="btn btn-primary" onclick="saveRota()" id="dutySaveBtn">
+        <i class="fi fi-rr-disk"></i> Save Rota
+      </button>
+    </div>
+  </div>
+  <div class="toolbar-row week-nav-row" id="dutyWeekNav">
+    <div class="toolbar-actions" style="align-items: center;">
+      <button class="btn btn-secondary btn-icon" onclick="prevDutyWeek()" title="Previous week" aria-label="Previous week">
+        <i class="fi fi-rr-angle-small-left"></i>
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="todayDutyWeek()" id="dutyTodayBtn">
+        Today
+      </button>
+      <button class="btn btn-secondary btn-icon" onclick="nextDutyWeek()" title="Next week" aria-label="Next week">
+        <i class="fi fi-rr-angle-small-right"></i>
+      </button>
+      <span class="week-label" id="dutyWeekRangeLabel">Loading week...</span>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="copyFromPrevDutyWeek()" id="dutyCopyPrevBtn" title="Copy rota from previous week">
+        <i class="fi fi-rr-copy-alt"></i> Copy from last week
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LAYOUT: MEMBER POOL + ROTA GRID ──────────────── -->
+<div class="pool-layout" id="dutyLayout">
+
+  <!-- Member Pool -->
+  <aside class="card pool-card" id="memberPool">
+    <div class="pool-head">
+      <div class="card-title"><i class="fi fi-rr-users"></i> Members</div>
+      <span class="count-pill" id="memberCount">0 members</span>
+    </div>
+    <form class="member-add" onsubmit="event.preventDefault(); addMember();">
+      <input type="text" class="form-input" id="memberNameInput" placeholder="Add member name..." maxlength="60" autocomplete="off" />
+      <button type="submit" class="btn btn-primary btn-icon" title="Add member" aria-label="Add member"><i class="fi fi-rr-user-add"></i></button>
+    </form>
+    <div class="pool-body" id="memberPoolBody"></div>
+  </aside>
+
+  <!-- Rota Grid -->
+  <div class="grid-scroll" id="dutyGridWrap">
+    <div class="duty-grid" id="dutyGrid"></div>
+  </div>
+</div>
+
+<!-- ── EDIT ASSIGNMENT MODAL ─────────────────────────── -->
+<div class="modal-overlay hidden" id="dutyModal" role="dialog" aria-modal="true" aria-labelledby="dutyModalTitle">
+  <div class="modal-content modal-sm">
+    <div class="modal-head">
+      <h2 class="card-title" id="dutyModalTitle">Duty details</h2>
+      <button class="btn btn-secondary btn-icon" onclick="closeDutyModal()" aria-label="Close"><i class="fi fi-rr-cross-small"></i></button>
+    </div>
+
+    <form id="dutyForm" onsubmit="event.preventDefault(); submitDutyModal();">
+      <input type="hidden" id="dutyEditId" />
+
+      <div class="form-group">
+        <label class="form-label" for="dutyPersonSelect">Person</label>
+        <select class="form-input" id="dutyPersonSelect" required></select>
+      </div>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label" for="dutyDaySelect">Day</label>
+          <select class="form-input" id="dutyDaySelect" required></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="dutySlotSelect">Time slot</label>
+          <select class="form-input" id="dutySlotSelect" required></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="dutyNameInput">Duty name</label>
+        <input type="text" class="form-input" id="dutyNameInput" placeholder="e.g. Front desk" maxlength="200" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="dutyNotesInput">Notes</label>
+        <textarea class="form-textarea" id="dutyNotesInput" rows="3" placeholder="Optional notes..." maxlength="1000"></textarea>
+      </div>
+
+      <div class="modal-actions split">
+        <button type="button" class="btn btn-danger" onclick="removeDutyFromModal()"><i class="fi fi-rr-trash"></i> Remove</button>
+        <div class="modal-actions-right">
+          <button type="button" class="btn btn-secondary" onclick="closeDutyModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fi fi-rr-check"></i> Apply</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
