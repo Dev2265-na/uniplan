@@ -2031,16 +2031,177 @@ button:disabled, .btn:disabled { opacity: .5; cursor: not-allowed !important; po
   .topbar-title { font-size: 20px; }
   .menu-toggle { display: none; }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  .main-content, .module-view {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Study Hub Mobile Layout */
+  .study-top-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .study-top-actions-wrap {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .study-view-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    padding: 3px;
+    box-sizing: border-box;
+  }
+  .study-tab-btn {
+    justify-content: center;
+    padding: 8px 4px;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .study-top-actions {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .study-top-actions .btn {
+    flex: 1 1 calc(50% - 6px);
+    justify-content: center;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  /* Executive GPA Summary Bar */
+  .study-gpa-summary-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .study-gpa-stat-card {
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .sg-lbl {
+    font-size: 10px;
+  }
+  .sg-val {
+    font-size: 20px;
+  }
+  .sg-sub {
+    font-size: 10px;
+  }
+
+  /* Subject Boxes Grid */
+  .study-subjects-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+  .study-subject-card {
+    padding: 14px;
+    min-width: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ssc-title {
+    font-size: 14px;
+  }
+  .ssc-main-metrics {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .ssc-score-num {
+    font-size: 22px;
+  }
+  .ssc-grade-badge {
+    width: 46px;
+    height: 34px;
+    font-size: 18px;
+  }
+
+  /* Ref Cutoff Table */
+  .ref-cutoff-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px;
+  }
+
+  /* Modal on Mobile */
+  .modal-overlay {
+    padding: 8px !important;
+  }
+  .modal-content {
+    padding: 16px 12px !important;
+    max-height: 94vh !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: var(--radius) !important;
+  }
+  .modal-scroll {
+    max-height: calc(94vh - 120px) !important;
+    padding-right: 2px !important;
+  }
+  .grade-items-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 6px;
+  }
+  .grade-items-head, .grade-item-row {
+    min-width: 320px;
+    grid-template-columns: 1fr 48px 48px 48px 68px 28px;
+    gap: 4px;
+  }
+  .grade-input-name {
+    font-size: 12px;
+  }
+  .grade-input-num {
+    padding: 6px 2px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .grade-weighted-pill {
+    font-size: 10px;
+    padding: 4px 4px;
+  }
+  .grade-items-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .grade-items-actions .btn {
+    font-size: 11px;
+    padding: 5px 8px;
+  }
+  .modal-actions.split {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+  }
+  .modal-actions-right, .modal-actions > div:first-child {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  .modal-actions .btn {
+    flex: 1 !important;
+    justify-content: center !important;
+  }
+
   .pool-layout { flex-direction: column; }
   .overview-body, .study-grid { grid-template-columns: 1fr; }
   .grade-summary-strip { grid-template-columns: 1fr; }
-  .grade-items-head, .grade-item-row { grid-template-columns: 1fr 50px 50px 50px 72px 30px; gap: 4px; }
   .pool-card { width: 100%; }
   .pool-body { max-height: 260px; flex-direction: row; flex-wrap: wrap; }
   .pool-item { flex: 1 1 140px; }
   .grid-scroll { width: 100%; }
   .form-grid-2 { grid-template-columns: 1fr 1fr; gap: 12px; }
-  .modal-content { padding: 22px; }
   .date-input { width: 130px; }
   .filter-select { flex: 1; min-width: 130px; }
   .task-actions { flex-direction: column; }

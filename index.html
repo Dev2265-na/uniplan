@@ -175,33 +175,35 @@
         </p>
       </div>
 
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <div class="study-top-actions-wrap" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
         <!-- Sub-tab view toggle -->
         <div class="study-view-tabs">
           <button type="button" class="study-tab-btn active" id="tabStudyCards" onclick="switchStudySubTab('cards')" title="แสดงแบบกล่องวิชา">
-            <i class="fi fi-rr-apps"></i> กล่องวิชา (Cards)
+            <i class="fi fi-rr-apps"></i> กล่องวิชา
           </button>
           <button type="button" class="study-tab-btn" id="tabStudyMatrix" onclick="switchStudySubTab('matrix')" title="แสดงตารางสเปรดชีต Matrix">
-            <i class="fi fi-rr-table-list"></i> ตาราง Matrix
+            <i class="fi fi-rr-table-list"></i> ตาราง
           </button>
           <button type="button" class="study-tab-btn" id="tabStudyTimer" onclick="switchStudySubTab('timer')" title="นาฬิกาจับเวลา Focus &amp; OSCE">
-            <i class="fi fi-rr-stopwatch"></i> Focus / OSCE
+            <i class="fi fi-rr-stopwatch"></i> Focus/OSCE
           </button>
         </div>
 
         <!-- Action buttons -->
-        <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่">
-          <i class="fi fi-rr-plus"></i> เพิ่มวิชา
-        </button>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="toggleRefCutoffs()" title="ดูเกณฑ์การตัดเกรดอ้างอิง">
-          <i class="fi fi-rr-info"></i> เกณฑ์ตัดเกรด
-        </button>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="syncStudyWithGoogleSheet(true)" title="ดึงข้อมูลล่าสุดจาก Google Sheet">
-          <i class="fi fi-rr-refresh"></i> Sync
-        </button>
-        <a class="btn btn-sm btn-secondary" id="studyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="เปิด Google Sheet">
-          <i class="fi fi-rr-file-spreadsheet"></i> Sheet
-        </a>
+        <div class="study-top-actions" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่">
+            <i class="fi fi-rr-plus"></i> เพิ่มวิชา
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="toggleRefCutoffs()" title="ดูเกณฑ์การตัดเกรดอ้างอิง">
+            <i class="fi fi-rr-info"></i> เกณฑ์ตัดเกรด
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="syncStudyWithGoogleSheet(true)" title="ดึงข้อมูลล่าสุดจาก Google Sheet">
+            <i class="fi fi-rr-refresh"></i> Sync
+          </button>
+          <a class="btn btn-sm btn-secondary" id="studyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="เปิด Google Sheet">
+            <i class="fi fi-rr-file-spreadsheet"></i> Sheet
+          </a>
+        </div>
       </div>
     </div>
 
@@ -422,15 +424,17 @@
           <span style="font-size: 11px; color: var(--text-muted);">กรอกคะแนนที่ได้เพื่อคำนวณทันที</span>
         </div>
 
-        <div class="grade-items-head">
-          <span>Component Name</span>
-          <span>Weight (%)</span>
-          <span>Earned</span>
-          <span>Max</span>
-          <span>Weighted</span>
-          <span></span>
+        <div class="grade-items-wrap">
+          <div class="grade-items-head">
+            <span>Component Name</span>
+            <span>Weight (%)</span>
+            <span>Earned</span>
+            <span>Max</span>
+            <span>Weighted</span>
+            <span></span>
+          </div>
+          <div class="grade-items-list" id="gradeItemsList"></div>
         </div>
-        <div class="grade-items-list" id="gradeItemsList"></div>
 
         <div class="grade-items-actions" style="margin-top: 8px;">
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentRow()">
