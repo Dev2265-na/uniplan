@@ -3924,6 +3924,8 @@ function loadStudyModule() {
   renderStudyTimerUI();
   renderStudySessionLogs();
   renderGradeTracker();
+  renderStudySubjectsGrid();
+  renderGpaOverviewTable();
 
   if (!STATE.study.loaded) {
     STATE.study.loaded = true;
@@ -3943,6 +3945,8 @@ function loadStudyModule() {
         ensureSubjectGradeInitialized(STATE.study.selectedSubject);
         renderStudySessionLogs();
         renderGradeTracker();
+        renderStudySubjectsGrid();
+        renderGpaOverviewTable();
       }
     }, function() {});
   }
@@ -4889,7 +4893,17 @@ function updateGradeCalculations() {
     }).join('');
   }
 
+  // Update modal quick summary
+  var curLetter = scoreToLetterGrade(stats.accumulatedWeightedPct, stats.cutoffs);
+  var curPoint = scoreToContinuousPoint(stats.accumulatedWeightedPct);
+  var sdGrade = $('sdGradeVal');
+  if (sdGrade) {
+    sdGrade.textContent = curLetter + ' (' + curPoint.toFixed(2) + ')';
+    sdGrade.className = 'grade-metric-val ' + (isPassingGradeLetter(curLetter) ? 'grade-pass' : 'grade-f');
+  }
+
   renderGpaOverviewTable();
+  renderStudySubjectsGrid();
 }
 
 function onMatrixCellScoreInput(subjectCode, itemIdx, val) {
@@ -5064,5 +5078,173 @@ function renderGpaOverviewTable() {
   if (totCredEl) totCredEl.textContent = totalCredits.toFixed(1).replace(/\.0$/, '');
   if (avgScoreEl) avgScoreEl.textContent = gradedCredits > 0 ? (weightedScoreSum / gradedCredits).toFixed(1) + '%' : '—';
   if (estGpaEl) estGpaEl.textContent = gradedCredits > 0 ? (weightedGradePointsSum / gradedCredits).toFixed(2) : '0.00';
+}
+
+function getGradeBadgeClass(grade) {
+  if (grade === 'A') return 'grade-a';
+  if (grade === 'B+') return 'grade-bp';
+  if (grade === 'B') return 'grade-b';
+  if (grade === 'C+') return 'grade-cp';
+  if (grade === 'C') return 'grade-c';
+  if (grade === 'D+') return 'grade-dp';
+  if (grade === 'D') return 'grade-d';
+  return 'grade-f';
+}
+
+function renderStudySubjectsGrid() {
+  var grid = $('studySubjectsGrid');
+  if (!grid) return;
+
+  var subjects = getAllStudySubjects();
+  var totalCoursesEl = $('studyTotalCoursesVal');
+  if (totalCoursesEl) totalCoursesEl.textContent = subjects.length;
+
+  if (!subjects.length) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column: 1/-1; padding: 40px; text-align: center;">' +
+      '<i class="fi fi-rr-book-alt" style="font-size: 36px; color: var(--text-muted); margin-bottom: 12px; display: inline-block;"></i>' +
+      '<div style="font-size: 16px; font-weight: 700;">ยังไม่มีรายวิชาในระบบ</div>' +
+      '<p style="color: var(--text-muted); margin: 6px 0 16px;">กดปุ่มเพิ่มรายวิชาเพื่อเริ่มต้นคำนวณเกรด</p>' +
+      '<button type="button" class="btn btn-primary btn-sm" onclick="addCustomStudySubjectPrompt()"><i class="fi fi-rr-plus"></i> เพิ่มรายวิชาแรก</button>' +
+    '</div>';
+    return;
+  }
+
+  var html = subjects.map(function(s) {
+    ensureSubjectGradeInitialized(s.code);
+    var cred = getSubjectCredits(s.code);
+    var st = computeSubjectSummary(s.code);
+    var currentLetter = scoreToLetterGrade(st.accumulatedWeightedPct, st.cutoffs);
+    var curPoint = scoreToContinuousPoint(st.accumulatedWeightedPct);
+    var badgeClass = getGradeBadgeClass(currentLetter);
+
+    var passCut = st.cutoffs['C'] !== undefined ? st.cutoffs['C'] : 50;
+    var needForPass = Math.max(0, passCut - st.accumulatedWeightedPct);
+    var passStatusHtml = '';
+    if (needForPass <= 0) {
+      passStatusHtml = '<span class="ssc-pass-tag pass"><i class="fi fi-rr-check-circle"></i> ผ่านเกณฑ์ C แล้ว</span>';
+    } else if (st.remainingWeight <= 0) {
+      passStatusHtml = '<span class="ssc-pass-tag fail"><i class="fi fi-rr-cross-circle"></i> ไม่ถึงเกณฑ์ C</span>';
+    } else {
+      passStatusHtml = '<span class="ssc-pass-tag warn"><i class="fi fi-rr-bullseye-arrow"></i> ต้องอีก +' + needForPass.toFixed(1) + '% เพื่อผ่าน C</span>';
+    }
+
+    var progressPct = Math.min(100, Math.max(0, st.accumulatedWeightedPct));
+    var accentColor = s.color || '#6366f1';
+    var isSelected = s.code === STATE.study.selectedSubject;
+
+    return '<div class="study-subject-card' + (isSelected ? ' active' : '') + '" style="--subject-accent:' + escapeHtml(accentColor) + '" onclick="openSubjectDetailModal(' + arg(s.code) + ')">' +
+      '<div class="ssc-head">' +
+        '<div class="ssc-code-row">' +
+          '<span class="ssc-code-pill" style="border-left: 3px solid ' + escapeHtml(accentColor) + ';">' + escapeHtml(s.code) + '</span>' +
+          '<span class="ssc-credits-pill">' + escapeHtml(cred) + ' หน่วยกิต</span>' +
+        '</div>' +
+        '<button type="button" class="btn btn-secondary btn-icon btn-sm" style="width:26px;height:26px;padding:0;" onclick="event.stopPropagation();editStudySubjectPrompt(' + arg(s.code) + ')" title="แก้ไขรายวิชา"><i class="fi fi-rr-edit" style="font-size:11px;"></i></button>' +
+      '</div>' +
+
+      '<div class="ssc-title" title="' + escapeHtml(s.name) + '">' + escapeHtml(s.name) + '</div>' +
+
+      '<div class="ssc-main-metrics">' +
+        '<div class="ssc-metric-box">' +
+          '<span class="ssc-metric-lbl">คะแนนสะสมสุทธิ</span>' +
+          '<div class="ssc-score-num">' + st.accumulatedWeightedPct.toFixed(1).replace(/\.0$/, '') + '<span class="ssc-score-max"> / ' + st.totalWeight.toFixed(0) + '%</span></div>' +
+          '<span style="font-size:11px;color:var(--text-muted);">ประกาศแล้ว ' + st.gradedWeight.toFixed(0) + '%</span>' +
+        '</div>' +
+        '<div class="ssc-metric-box" style="align-items:flex-end; text-align:right;">' +
+          '<span class="ssc-metric-lbl">เกรดปัจจุบัน</span>' +
+          '<div class="ssc-grade-badge ' + badgeClass + '">' + escapeHtml(currentLetter) + '</div>' +
+          '<span style="font-size:11px;color:var(--text-muted);margin-top:3px;">แต้ม ' + curPoint.toFixed(2) + '</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="ssc-progress-wrap">' +
+        '<div class="ssc-progress-track">' +
+          '<div class="ssc-progress-fill" style="width: ' + progressPct + '%; background:' + escapeHtml(accentColor) + ';"></div>' +
+        '</div>' +
+        '<div class="ssc-progress-labels">' +
+          '<span>ได้แล้ว ' + st.accumulatedWeightedPct.toFixed(1).replace(/\.0$/, '') + '%</span>' +
+          '<span>เหลืออีก ' + st.remainingWeight.toFixed(0) + '%</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="ssc-card-footer">' +
+        passStatusHtml +
+        '<span class="ssc-open-btn">ดูรายละเอียด <i class="fi fi-rr-arrow-right"></i></span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  grid.innerHTML = html;
+}
+
+function openSubjectDetailModal(subjectCode) {
+  if (!subjectCode) return;
+  STATE.study.selectedSubject = subjectCode;
+  ensureSubjectGradeInitialized(subjectCode);
+
+  var allSubs = getAllStudySubjects();
+  var subjObj = allSubs.find(function(s) { return s.code === subjectCode; }) || { code: subjectCode, name: subjectCode, credits: 3 };
+
+  var codePill = $('sdModalCodePill');
+  var creditsPill = $('sdModalCreditsPill');
+  var titleEl = $('sdModalTitle');
+  var gradeSel = $('gradeSubjectSelect');
+
+  if (codePill) {
+    codePill.textContent = subjObj.code;
+    if (subjObj.color) codePill.style.borderLeft = '3px solid ' + subjObj.color;
+  }
+  if (creditsPill) creditsPill.textContent = getSubjectCredits(subjectCode) + ' หน่วยกิต';
+  if (titleEl) titleEl.textContent = subjObj.name || subjObj.code;
+  if (gradeSel && gradeSel.value !== subjectCode) gradeSel.value = subjectCode;
+
+  renderGradeTracker();
+
+  var modal = $('subjectDetailModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSubjectDetailModal() {
+  var modal = $('subjectDetailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  renderStudySubjectsGrid();
+  renderGpaOverviewTable();
+}
+
+function switchStudySubTab(tabName) {
+  var tabCards = $('tabStudyCards');
+  var tabMatrix = $('tabStudyMatrix');
+  var tabTimer = $('tabStudyTimer');
+
+  var viewCards = $('studyCardsView');
+  var viewMatrix = $('studyMatrixView');
+  var viewTimer = $('studyTimerView');
+
+  if (tabCards) tabCards.classList.toggle('active', tabName === 'cards');
+  if (tabMatrix) tabMatrix.classList.toggle('active', tabName === 'matrix');
+  if (tabTimer) tabTimer.classList.toggle('active', tabName === 'timer');
+
+  if (viewCards) viewCards.classList.toggle('hidden', tabName !== 'cards');
+  if (viewMatrix) viewMatrix.classList.toggle('hidden', tabName !== 'matrix');
+  if (viewTimer) viewTimer.classList.toggle('hidden', tabName !== 'timer');
+
+  STATE.study.currentSubTab = tabName;
+  if (tabName === 'cards') {
+    renderStudySubjectsGrid();
+  } else if (tabName === 'matrix') {
+    renderGpaOverviewTable();
+  }
+}
+
+function toggleRefCutoffs() {
+  var box = $('refCutoffBox');
+  if (box) {
+    box.classList.toggle('hidden');
+  }
 }
 </script>

@@ -164,21 +164,135 @@
   <!-- ── MODULE 4: STUDY HUB (TIMER & GRADE TRACKER) ── -->
   <div class="module-view hidden" id="moduleStudy">
 
-    <!-- Unified Study Subject Bar (เลือกวิชาเดียว มีผลทั้งหน้า ไม่สับสน) -->
-    <div class="card study-global-bar" id="studyGlobalBar">
-      <div class="study-global-left">
-        <label class="study-global-label" for="studyGlobalSubjectSelect">
-          <i class="fi fi-rr-graduation-cap"></i> กำลังเลือกดูวิชา (Active Subject):
-        </label>
-        <select class="form-input study-global-select" id="studyGlobalSubjectSelect" onchange="selectStudySubject(this.value)"></select>
+    <!-- Study Top Navigation & Actions Bar -->
+    <div class="study-top-header">
+      <div>
+        <h2 class="module-title" style="margin-bottom: 2px;">
+          <i class="fi fi-rr-graduation-cap"></i> Study Hub &amp; Grade Tracker
+        </h2>
+        <p class="study-sub" style="margin: 0;">
+          กล่องรายวิชา แสดงเกรด &amp; คะแนนสะสมสุทธิ พร้อมตัวคำนวณเป้าหมายคะแนนสอบไฟนอล
+        </p>
       </div>
-      <div class="study-subject-pills" id="studySubjectPills"></div>
+
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <!-- Sub-tab view toggle -->
+        <div class="study-view-tabs">
+          <button type="button" class="study-tab-btn active" id="tabStudyCards" onclick="switchStudySubTab('cards')" title="แสดงแบบกล่องวิชา">
+            <i class="fi fi-rr-apps"></i> กล่องวิชา (Cards)
+          </button>
+          <button type="button" class="study-tab-btn" id="tabStudyMatrix" onclick="switchStudySubTab('matrix')" title="แสดงตารางสเปรดชีต Matrix">
+            <i class="fi fi-rr-table-list"></i> ตาราง Matrix
+          </button>
+          <button type="button" class="study-tab-btn" id="tabStudyTimer" onclick="switchStudySubTab('timer')" title="นาฬิกาจับเวลา Focus &amp; OSCE">
+            <i class="fi fi-rr-stopwatch"></i> Focus / OSCE
+          </button>
+        </div>
+
+        <!-- Action buttons -->
+        <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่">
+          <i class="fi fi-rr-plus"></i> เพิ่มวิชา
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="toggleRefCutoffs()" title="ดูเกณฑ์การตัดเกรดอ้างอิง">
+          <i class="fi fi-rr-info"></i> เกณฑ์ตัดเกรด
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="syncStudyWithGoogleSheet(true)" title="ดึงข้อมูลล่าสุดจาก Google Sheet">
+          <i class="fi fi-rr-refresh"></i> Sync
+        </button>
+        <a class="btn btn-sm btn-secondary" id="studyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="เปิด Google Sheet">
+          <i class="fi fi-rr-file-spreadsheet"></i> Sheet
+        </a>
+      </div>
     </div>
 
-    <div class="study-grid">
+    <!-- Executive GPA & Credit Summary Bar -->
+    <div class="study-gpa-summary-bar">
+      <div class="study-gpa-stat-card">
+        <span class="sg-lbl">หน่วยกิตรวม (Total Credits)</span>
+        <strong class="sg-val" id="gpaTotalCreditsVal">0</strong>
+        <span class="sg-sub" id="gpaGradedCreditsSub">สะสมจากทุกวิชาในเทอม</span>
+      </div>
+      <div class="study-gpa-stat-card">
+        <span class="sg-lbl">คะแนนเฉลี่ยรวม (Avg Score)</span>
+        <strong class="sg-val" id="gpaAvgScoreVal">0.0%</strong>
+        <span class="sg-sub">ถ่วงน้ำหนักตามหน่วยกิต</span>
+      </div>
+      <div class="study-gpa-stat-card accent">
+        <span class="sg-lbl">เกรดเฉลี่ยสะสม (Estimated GPA)</span>
+        <strong class="sg-val" id="gpaEstVal" style="color: var(--accent);">0.00</strong>
+        <span class="sg-sub">คำนวณจากเกรดแนวโน้ม</span>
+      </div>
+      <div class="study-gpa-stat-card">
+        <span class="sg-lbl">จำนวนวิชา (Enrolled Courses)</span>
+        <strong class="sg-val" id="studyTotalCoursesVal">0</strong>
+        <span class="sg-sub">คลิกที่กล่องเพื่อดูรายละเอียด</span>
+      </div>
+    </div>
 
-      <!-- Card 1: Pomodoro & OSCE Station Timer -->
-      <div class="card study-card" id="studyTimerCard">
+    <!-- Collapsible Reference Grade Cutoff Table (เกณฑ์การตัดเกรดอ้างอิง) -->
+    <div class="ref-cutoff-box hidden" id="refCutoffBox" style="margin-bottom: 20px;">
+      <div class="ref-cutoff-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span><i class="fi fi-rr-info"></i> เกณฑ์การตัดเกรดอ้างอิง (Reference Grading Scale)</span>
+        <button type="button" class="btn btn-secondary btn-icon btn-sm" onclick="toggleRefCutoffs()" style="width:24px;height:24px;"><i class="fi fi-rr-cross" style="font-size:10px;"></i></button>
+      </div>
+      <div class="ref-cutoff-grid">
+        <div class="ref-cut-item pass"><span class="rc-g">A</span><span class="rc-p">3.51 – 4.00</span><span class="rc-s">87.75 – 100.00%</span></div>
+        <div class="ref-cut-item pass"><span class="rc-g">B+</span><span class="rc-p">3.25 – 3.50</span><span class="rc-s">81.25 – 87.50%</span></div>
+        <div class="ref-cut-item pass"><span class="rc-g">B</span><span class="rc-p">3.00 – 3.24</span><span class="rc-s">75.00 – 81.00%</span></div>
+        <div class="ref-cut-item pass"><span class="rc-g">C+</span><span class="rc-p">2.50 – 2.99</span><span class="rc-s">62.50 – 74.75%</span></div>
+        <div class="ref-cut-item pass"><span class="rc-g">C</span><span class="rc-p">2.00 – 2.49</span><span class="rc-s">50.00 – 62.25%</span></div>
+        <div class="ref-cut-item fail"><span class="rc-g">D+</span><span class="rc-p">1.50 – 1.99</span><span class="rc-s">37.50 – 49.75%</span></div>
+        <div class="ref-cut-item fail"><span class="rc-g">D</span><span class="rc-p">1.00 – 1.49</span><span class="rc-s">25.00 – 37.25%</span></div>
+        <div class="ref-cut-item fail"><span class="rc-g">F</span><span class="rc-p">&lt; 1.00</span><span class="rc-s">&lt; 25.00%</span></div>
+      </div>
+    </div>
+
+    <!-- VIEW 1 (MAIN / DEFAULT): SUBJECT BOXES GRID (กล่องวิชา แสดง เกรด และคะแนน) -->
+    <div id="studyCardsView">
+      <div class="study-subjects-grid" id="studySubjectsGrid"></div>
+    </div>
+
+    <!-- VIEW 2: FULL SPREADSHEET MATRIX VIEW -->
+    <div class="hidden" id="studyMatrixView">
+      <div class="card study-card study-card-wide" style="padding: 18px;">
+        <div class="study-card-head" style="margin-bottom: 12px;">
+          <div>
+            <h2 class="card-title" style="font-size: 16px;"><i class="fi fi-rr-table-list"></i> ตารางสเปรดชีตสัดส่วนคะแนนรวม (Score Matrix Sheet)</h2>
+            <p class="study-sub">กรอกคะแนนสุทธิลงในช่องตารางได้ทันที หรือคลิกชื่อวิชาเพื่อเปิดดูรายละเอียด</p>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="loadOfficialParamedicScoreTemplatePrompt()" title="Load official RAPM 201, 202, 203, 208 score structure">
+            <i class="fi fi-rr-refresh"></i> โหลดโครงสร้างคะแนน RAPM
+          </button>
+        </div>
+
+        <div class="matrix-filter-bar">
+          <div class="matrix-filter-label"><i class="fi fi-rr-eye"></i> แสดงผลตารางคะแนน:</div>
+          <div class="matrix-filter-pills" id="matrixFilterPills"></div>
+        </div>
+        <div class="score-matrix-list" id="scoreMatrixContainer"></div>
+
+        <div class="gpa-table-wrap" style="margin-top: 14px;">
+          <table class="gpa-table">
+            <thead>
+              <tr>
+                <th>รายวิชา (Subject)</th>
+                <th>หน่วยกิต (Credits)</th>
+                <th>น้ำหนักที่ประกาศผลแล้ว</th>
+                <th>คะแนนรวมสุทธิ (100%)</th>
+                <th>แต้มประจำ / เกรดปัจจุบัน</th>
+                <th>เกรดแนวโน้ม (Projected)</th>
+                <th>ต้องทำเพิ่มเพื่อผ่าน C (≥50.00%)</th>
+              </tr>
+            </thead>
+            <tbody id="gpaOverviewTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: FOCUS & OSCE STATION TIMER VIEW -->
+    <div class="hidden" id="studyTimerView">
+      <div class="card study-card" id="studyTimerCard" style="max-width: 680px; margin: 0 auto;">
         <div class="study-card-head">
           <div>
             <h2 class="card-title"><i class="fi fi-rr-stopwatch"></i> Focus &amp; OSCE Station Timer</h2>
@@ -243,72 +357,73 @@
           <div class="study-log-list" id="studySessionLogList"></div>
         </div>
       </div>
+    </div>
 
-      <!-- Card 2: Score, Weight & Grade Target Calculator -->
-      <div class="card study-card" id="studyGradesCard">
-        <div class="study-card-head">
-          <div>
-            <h2 class="card-title"><i class="fi fi-rr-bullseye-arrow"></i> Score &amp; Weight Calculator (เชื่อมกับ Google Sheet)</h2>
-            <p class="study-sub">เพิ่ม/แก้ไขรายชื่อวิชา บันทึกคะแนนเก็บ &amp; น้ำหนัก (%) และซิงค์ข้อมูลลง Google Sheet อัตโนมัติ</p>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <a class="btn btn-sm btn-secondary" id="studyOpenSheetBtn" href="#" target="_blank" rel="noopener noreferrer" title="Open Google Sheet (SubjectPool &amp; Grades)">
-              <i class="fi fi-rr-file-spreadsheet"></i> Google Sheet
-            </a>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="syncStudyWithGoogleSheet(true)" title="ดึงรายชื่อวิชาและคะแนนล่าสุดจาก Google Sheet">
-              <i class="fi fi-rr-refresh"></i> Sync Sheet
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="openGradeCutoffsModal()" title="Customize grade cutoffs (A, B+, B...)">
-              <i class="fi fi-rr-settings-sliders"></i> Grade Cutoffs
-            </button>
-            <button type="button" class="btn btn-sm btn-primary" onclick="saveStudyDataToServer(true)">
-              <i class="fi fi-rr-disk"></i> Save to Sheet
-            </button>
+  </div>
+
+</main>
+
+<!-- ── SUBJECT DETAIL MODAL (แสดงรายละเอียดคะแนน, ส่วนประกอบ & คำนวณเป้าหมาย) ── -->
+<div class="modal-overlay hidden" id="subjectDetailModal" onclick="if(event.target===this) closeSubjectDetailModal()" role="dialog" aria-modal="true" aria-labelledby="sdModalTitle">
+  <div class="modal-content" style="max-width: 860px; max-height: 92vh;">
+    <!-- Modal Head -->
+    <div class="modal-head" style="margin-bottom: 12px; align-items: flex-start;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span class="ssc-code-pill" id="sdModalCodePill">RAPM 201</span>
+          <span class="ssc-credits-pill" id="sdModalCreditsPill">3 หน่วยกิต</span>
+          <div style="position: relative; display: inline-block;">
+            <select class="form-input" id="gradeSubjectSelect" onchange="openSubjectDetailModal(this.value)" style="height: 28px; padding: 2px 24px 2px 8px; font-size: 11px; font-weight: 600;"></select>
           </div>
         </div>
+        <h2 class="card-title" id="sdModalTitle" style="font-size: 18px; margin: 0; line-height: 1.3;">สรีรวิทยาและบูรณาการสำหรับฉุกเฉินการแพทย์ ๑</h2>
+      </div>
+      <div class="modal-head-actions">
+        <button type="button" class="btn btn-secondary btn-icon" onclick="closeSubjectDetailModal()" title="ปิดหน้าต่าง">
+          <i class="fi fi-rr-cross"></i>
+        </button>
+      </div>
+    </div>
 
-        <div class="grade-subject-bar">
-          <div class="form-group" style="flex:1; margin-bottom:0; min-width:180px;">
-            <label class="form-label" for="gradeSubjectSelect">รายวิชา (Select Subject — จาก Google Sheet)</label>
-            <select class="form-input" id="gradeSubjectSelect" onchange="selectStudySubject(this.value)"></select>
-          </div>
-          <div class="form-group" style="width:92px; margin-bottom:0;">
-            <label class="form-label" for="gradeSubjectCredits" title="Course credit weight for GPA">Credits (หน่วยกิต)</label>
-            <input type="number" step="0.5" min="0.5" max="12" class="form-input" id="gradeSubjectCredits" value="3" oninput="onSubjectCreditsChange(this.value)" />
-          </div>
-          <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่ลงในระบบและ Google Sheet">
-            <i class="fi fi-rr-plus"></i> เพิ่มวิชา
-          </button>
-          <button type="button" class="btn btn-sm btn-secondary" onclick="editStudySubjectPrompt()" title="แก้ไขรหัสวิชา ชื่อวิชา หรือหน่วยกิต">
-            <i class="fi fi-rr-edit"></i> แก้ไขวิชา
-          </button>
-          <button type="button" class="btn btn-sm btn-secondary" onclick="deleteStudySubjectPrompt()" title="ลบรายวิชานี้ออกจากรายการ">
-            <i class="fi fi-rr-trash"></i> ลบวิชา
-          </button>
-          <button type="button" class="btn btn-sm btn-secondary" onclick="resetSubjectGradeTemplate()" title="Reset to default assessment components">
-            <i class="fi fi-rr-magic-wand"></i> Reset
-          </button>
+    <!-- Modal Scrollable Body -->
+    <div class="modal-scroll" style="max-height: calc(92vh - 140px); padding-right: 6px;">
+
+      <!-- Quick Summary Metric Strip -->
+      <div class="grade-summary-strip" id="gradeSummaryStrip" style="margin-bottom: 14px;">
+        <div class="grade-metric">
+          <span class="grade-metric-label">คะแนนรวมสุทธิ (Earned)</span>
+          <strong class="grade-metric-val" id="gradeAccumVal" style="color: var(--accent);">0.00%</strong>
         </div>
+        <div class="grade-metric">
+          <span class="grade-metric-label">เกรดปัจจุบัน (Current)</span>
+          <strong class="grade-metric-val" id="sdGradeVal">F</strong>
+        </div>
+        <div class="grade-metric">
+          <span class="grade-metric-label">ประกาศผลแล้ว / สัดส่วนรวม</span>
+          <strong class="grade-metric-val" id="gradeGradedWeightVal">0% / 100%</strong>
+        </div>
+        <div class="grade-metric">
+          <span class="grade-metric-label">สัดส่วนที่เหลือ (Remaining)</span>
+          <strong class="grade-metric-val" id="gradeRemainingWeightVal">100%</strong>
+        </div>
+      </div>
 
-        <div class="grade-weight-banner" id="gradeWeightStatusBanner"></div>
+      <div class="grade-weight-banner" id="gradeWeightStatusBanner"></div>
 
-        <div class="grade-summary-strip" id="gradeSummaryStrip">
-          <div class="grade-metric">
-            <span class="grade-metric-label">Accumulated Weighted Score</span>
-            <strong class="grade-metric-val" id="gradeAccumVal">0.00%</strong>
-          </div>
-          <div class="grade-metric">
-            <span class="grade-metric-label">Graded / Total Weight</span>
-            <strong class="grade-metric-val" id="gradeGradedWeightVal">0% / 100%</strong>
-          </div>
-          <div class="grade-metric">
-            <span class="grade-metric-label">Remaining Weight</span>
-            <strong class="grade-metric-val" id="gradeRemainingWeightVal">100%</strong>
-          </div>
+      <!-- Hidden Credits Input (required for compatibility) -->
+      <input type="hidden" id="gradeSubjectCredits" value="3" />
+
+      <!-- Assessment Components List -->
+      <div style="margin-top: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: var(--text-primary);">
+            <i class="fi fi-rr-list-check"></i> รายการคะแนนย่อยและน้ำหนัก (Assessment Components)
+          </h3>
+          <span style="font-size: 11px; color: var(--text-muted);">กรอกคะแนนที่ได้เพื่อคำนวณทันที</span>
         </div>
 
         <div class="grade-items-head">
-          <span>Assessment Component</span>
+          <span>Component Name</span>
           <span>Weight (%)</span>
           <span>Earned</span>
           <span>Max</span>
@@ -317,9 +432,9 @@
         </div>
         <div class="grade-items-list" id="gradeItemsList"></div>
 
-        <div class="grade-items-actions">
+        <div class="grade-items-actions" style="margin-top: 8px;">
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentRow()">
-            <i class="fi fi-rr-plus"></i> Add Row
+            <i class="fi fi-rr-plus"></i> เพิ่มแถว
           </button>
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Quiz', 10, 10)">+ Quiz (10%)</button>
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('TBL / JC', 10, 10)">+ TBL/JC (10%)</button>
@@ -327,94 +442,53 @@
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Midterm Exam', 30, 100)">+ Midterm (30%)</button>
           <button type="button" class="btn btn-sm btn-secondary" onclick="addGradeComponentPreset('Final Exam', 30, 100)">+ Final (30%)</button>
         </div>
+      </div>
 
-        <!-- What-if Remaining Score Simulator -->
-        <div class="whatif-simulator-box" id="whatIfSimulatorBox">
-          <div class="whatif-head">
-            <span><i class="fi fi-rr-sparkles"></i> What-If Simulator (ลองสมมติคะแนนสอบส่วนที่เหลือ)</span>
-            <span class="whatif-result" id="whatIfResultBadge">Projected: —</span>
-          </div>
-          <div class="whatif-controls">
-            <input type="range" min="0" max="100" step="1" value="75" id="whatIfSlider" oninput="onWhatIfChange(this.value)" />
-            <div class="whatif-pct-wrap">
-              <input type="number" min="0" max="100" step="1" value="75" class="form-input grade-input-num" id="whatIfInput" oninput="onWhatIfChange(this.value)" />
-              <span>%</span>
-            </div>
-          </div>
+      <!-- What-if Remaining Score Simulator -->
+      <div class="whatif-simulator-box" id="whatIfSimulatorBox" style="margin-top: 16px;">
+        <div class="whatif-head">
+          <span><i class="fi fi-rr-sparkles"></i> What-If Simulator (ลองสมมติคะแนนสอบส่วนที่เหลือ)</span>
+          <span class="whatif-result" id="whatIfResultBadge">Projected: —</span>
         </div>
-
-        <div class="grade-target-section">
-          <div class="study-log-head">
-            <span><i class="fi fi-rr-graduation-cap"></i> Required Score on Remaining Weight to Reach Grade</span>
+        <div class="whatif-controls">
+          <input type="range" min="0" max="100" step="1" value="75" id="whatIfSlider" oninput="onWhatIfChange(this.value)" />
+          <div class="whatif-pct-wrap">
+            <input type="number" min="0" max="100" step="1" value="75" class="form-input grade-input-num" id="whatIfInput" oninput="onWhatIfChange(this.value)" />
+            <span>%</span>
           </div>
-          <div class="grade-target-grid" id="gradeTargetGrid"></div>
         </div>
       </div>
 
-      <!-- Card 3: All Subjects Matrix Score Sheet & Credit-Weighted GPA -->
-      <div class="card study-card study-card-wide" id="studyGpaOverviewCard">
-        <div class="study-card-head">
-          <div>
-            <h2 class="card-title"><i class="fi fi-rr-table-list"></i> ตารางสรุปสัดส่วนน้ำหนักคะแนนและคะแนนรวมสุทธิ (Course Score Matrix &amp; GPA)</h2>
-            <p class="study-sub">ตารางคะแนนรายวิชาตามสัดส่วนน้ำหนักจริง (กรอกคะแนนสุทธิลงในช่องได้ทันที หรือคลิกชื่อวิชาเพื่อคำนวณเป้าหมายไฟนอลด้านบน)</p>
-          </div>
-          <div class="gpa-summary-badges">
-            <span class="gpa-badge"><span class="gpa-badge-lbl">Total Credits:</span> <strong id="gpaTotalCreditsVal">0</strong></span>
-            <span class="gpa-badge"><span class="gpa-badge-lbl">Avg Score:</span> <strong id="gpaAvgScoreVal">0.0%</strong></span>
-            <span class="gpa-badge accent"><span class="gpa-badge-lbl">Estimated GPA:</span> <strong id="gpaEstVal">0.00</strong></span>
-            <button type="button" class="btn btn-sm btn-primary" onclick="addCustomStudySubjectPrompt()" title="เพิ่มรายวิชาใหม่">
-              <i class="fi fi-rr-plus"></i> เพิ่มรายวิชา
-            </button>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="loadOfficialParamedicScoreTemplatePrompt()" title="Load official RAPM 201, 202, 203, 208 score structure">
-              <i class="fi fi-rr-refresh"></i> โหลดโครงสร้างคะแนน RAPM
-            </button>
-          </div>
+      <!-- Grade Target Cards -->
+      <div class="grade-target-section" style="margin-top: 16px;">
+        <div class="study-log-head">
+          <span><i class="fi fi-rr-graduation-cap"></i> คะแนนที่ต้องทำในส่วนที่เหลือเพื่อคว้าเกรดเป้าหมาย (Required Score to Reach Grade)</span>
         </div>
-
-        <!-- Reference Grade Cutoff Table (เกณฑ์การตัดเกรดอ้างอิง) -->
-        <div class="ref-cutoff-box">
-          <div class="ref-cutoff-title"><i class="fi fi-rr-info"></i> เกณฑ์การตัดเกรดอ้างอิง (Reference Grading Scale)</div>
-          <div class="ref-cutoff-grid">
-            <div class="ref-cut-item pass"><span class="rc-g">A</span><span class="rc-p">3.51 – 4.00</span><span class="rc-s">87.75 – 100.00%</span></div>
-            <div class="ref-cut-item pass"><span class="rc-g">B+</span><span class="rc-p">3.25 – 3.50</span><span class="rc-s">81.25 – 87.50%</span></div>
-            <div class="ref-cut-item pass"><span class="rc-g">B</span><span class="rc-p">3.00 – 3.24</span><span class="rc-s">75.00 – 81.00%</span></div>
-            <div class="ref-cut-item pass"><span class="rc-g">C+</span><span class="rc-p">2.50 – 2.99</span><span class="rc-s">62.50 – 74.75%</span></div>
-            <div class="ref-cut-item pass"><span class="rc-g">C</span><span class="rc-p">2.00 – 2.49</span><span class="rc-s">50.00 – 62.25%</span></div>
-            <div class="ref-cut-item fail"><span class="rc-g">D+</span><span class="rc-p">1.50 – 1.99</span><span class="rc-s">37.50 – 49.75%</span></div>
-            <div class="ref-cut-item fail"><span class="rc-g">D</span><span class="rc-p">1.00 – 1.49</span><span class="rc-s">25.00 – 37.25%</span></div>
-            <div class="ref-cut-item fail"><span class="rc-g">F</span><span class="rc-p">&lt; 1.00</span><span class="rc-s">&lt; 25.00%</span></div>
-          </div>
-        </div>
-
-        <!-- Horizontal Matrix View (Matches User's Spreadsheet Layout) -->
-        <div class="matrix-filter-bar">
-          <div class="matrix-filter-label"><i class="fi fi-rr-eye"></i> แสดงผลตารางคะแนน:</div>
-          <div class="matrix-filter-pills" id="matrixFilterPills"></div>
-        </div>
-        <div class="score-matrix-list" id="scoreMatrixContainer"></div>
-
-        <div class="gpa-table-wrap" style="margin-top: 10px;">
-          <table class="gpa-table">
-            <thead>
-              <tr>
-                <th>รายวิชา (Subject)</th>
-                <th>หน่วยกิต (Credits)</th>
-                <th>น้ำหนักที่ประกาศผลแล้ว</th>
-                <th>คะแนนรวมสุทธิ (100%)</th>
-                <th>แต้มประจำ / เกรดปัจจุบัน</th>
-                <th>เกรดแนวโน้ม (Projected)</th>
-                <th>ต้องทำเพิ่มเพื่อผ่าน C (≥50.00%)</th>
-              </tr>
-            </thead>
-            <tbody id="gpaOverviewTableBody"></tbody>
-          </table>
-        </div>
+        <div class="grade-target-grid" id="gradeTargetGrid"></div>
       </div>
+    </div>
 
+    <!-- Modal Footer Actions -->
+    <div class="modal-actions split" style="margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);">
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="resetSubjectGradeTemplate()" title="รีเซ็ตคะแนนเริ่มต้น">
+          <i class="fi fi-rr-magic-wand"></i> รีเซ็ตคะแนนวิชานี้
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="editStudySubjectPrompt(STATE.study.selectedSubject)" title="แก้ไขชื่อวิชาหรือหน่วยกิต">
+          <i class="fi fi-rr-edit"></i> แก้ไขวิชา
+        </button>
+      </div>
+      <div class="modal-actions-right">
+        <button type="button" class="btn btn-sm btn-primary" onclick="saveStudyDataToServer(true)">
+          <i class="fi fi-rr-disk"></i> บันทึกลง Google Sheet
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="closeSubjectDetailModal()">
+          ปิด
+        </button>
+      </div>
     </div>
   </div>
-
-</main>
+</div>
 
 <!-- ── GLOBAL LOADING OVERLAY ─────────────────────────── -->
 <div class="loading-overlay hidden" id="loadingOverlay">
