@@ -64,12 +64,23 @@ function dayRange(date) {
   return { start: s, end: e };
 }
 
+/**
+ * ตรวจสอบว่าชื่องานเป็นงานที่เสร็จแล้วหรือไม่
+ * ครอบคลุม: งานที่มีคำว่า "Done" นำหน้า (เช่น "Done - ...", "[Done] ...", "Done: ...")
+ * หรือมีคำว่า "เสร็จแล้ว" ในชื่อ
+ */
+function isTaskDone(summary) {
+  if (!summary) return false;
+  const s = String(summary).trim();
+  return /^\s*\[?\s*done\b/i.test(s) || s.includes('เสร็จแล้ว');
+}
+
 // ── Daily Summary — ทุกวัน 07:00 ────────────────────────────
 
 function sendDailySummary() {
   const now    = new Date();
   const { start, end } = dayRange(now);
-  const events = getEvents(start, end).filter(ev => !ev.getTitle().includes('เสร็จแล้ว'));
+  const events = getEvents(start, end).filter(ev => !isTaskDone(ev.getTitle()));
 
   // วันจันทร์ → ส่งสรุปสัปดาห์ก่อน
   const dayIndex = parseInt(Utilities.formatDate(now, TIMEZONE, 'u'), 10); // 1=จันทร์ … 7=อาทิตย์
@@ -134,7 +145,7 @@ function sendWeeklySummary() {
       const tEnd = ev.getEndTime().getTime();
       const dStart = ds.getTime();
       const dEnd = de.getTime();
-      if (ev.getTitle().includes('เสร็จแล้ว')) return false;
+      if (isTaskDone(ev.getTitle())) return false;
       return (tStart <= dEnd && tEnd > dStart) || (tStart === tEnd && tStart >= dStart && tStart <= dEnd);
     });
     const dayLabel  = `${DAY_NAMES[day.getDay()]}  ${Utilities.formatDate(day, TIMEZONE, 'd/M')}`;
@@ -185,7 +196,7 @@ function checkUpcomingEvents() {
 
   events.forEach(ev => {
     if (ev.isAllDayEvent()) return;
-    if (ev.getTitle().includes('เสร็จแล้ว')) return;
+    if (isTaskDone(ev.getTitle())) return;
 
     // ต้องให้เวลาเริ่มงานอยู่ในช่วง 25 - 35 นาทีข้างหน้านี้จริงๆ เท่านั้น 
     // เพื่อป้องกันการแจ้งเตือนซ้ำสำหรับงานที่ระยะเวลายาว (เช่น 3 ชั่วโมง)
@@ -434,9 +445,9 @@ function onCalendarUpdate(e) {
     const createdDate = item.created ? new Date(item.created) : new Date(0);
     const updatedDate = item.updated ? new Date(item.updated) : new Date(0);
     
-    // ถ้ามีคำว่า "เสร็จแล้ว" ให้แจ้งเตือนว่างานเสร็จ
+    // ถ้ามีคำว่า "Done" นำหน้า หรือมีคำว่า "เสร็จแล้ว" ให้แจ้งเตือนว่างานเสร็จ
     const diffTime = Math.abs(updatedDate.getTime() - createdDate.getTime());
-    if (item.summary && item.summary.includes('เสร็จแล้ว')) {
+    if (item.summary && isTaskDone(item.summary)) {
       actionType = '🎉 งานเสร็จแล้ว';
       color = 0x8E24AA; // Purple
     }

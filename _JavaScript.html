@@ -4952,8 +4952,10 @@ function renderScoreMatrixSheet() {
 
     var weightCells = items.map(function(it) {
       var w = parseFloat(it.weight) || 0;
-      var m = parseFloat(it.max) || w;
-      var lbl = (m === w) ? (w + '% (' + w + ' คะแนน)') : (w + '% (เต็ม ' + m + ')');
+      var lbl = w + '%';
+      if ((w === 30 || w === 40) && (it.name || '').indexOf('Midterm') !== -1) {
+        lbl = w + '% (' + w + ' คะแนน)';
+      }
       return '<td class="matrix-weight-cell">' + escapeHtml(lbl) + '</td>';
     }).join('');
 
